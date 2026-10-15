@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Train Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
+        .controls { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+        textarea { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; width: 100%; box-sizing: border-box; }
+        .row-controls { display: flex; gap: 15px; }
+        input[type="date"] { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        button:hover { background-color: #219150; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #2c3e50; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🚂 Live Train Dashboard</h2>
+    
+    <div class="controls">
+        <label><strong>Enter Trains to Monitor:</strong> (Separate by commas or paste a list)</label>
+        <textarea id="trainNumbers" rows="4" placeholder="Example:&#10;12958&#10;12919&#10;12004">12958, 12919, 12004, 11019, 22691</textarea>
+        
+        <div class="row-controls">
+            <input type="date" id="runDate">
+            <button onclick="startMonitoring()">Start Monitoring All Trains</button>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Train No</th>
+                <th>Live Position</th>
+                <th>Delay</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="trainTableBody">
+            <tr><td colspan="4" style="text-align: center;">Enter your list of trains and click Start</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    document.getElementById('runDate').valueAsDate = new Date();
+    
+    // Simulated data fetcher for demonstration
+    async function fetchTrainData(trainNo, date) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                const delay = Math.floor(Math.random() * 30); // Random delay between 0-30 mins
+                resolve({ 
+                    train: trainNo, 
+                    position: `Crossed Station XYZ (Simulated)`, 
+                    delay: delay 
+                });
+            }, 300); // Small delay to simulate loading
+        });
+    }
+
+    async function updateDashboard() {
+        // Splits by either commas OR new lines, so you can paste a list directly!
+        const rawInput = document.getElementById('trainNumbers').value;
+        const trains = rawInput.split(/[\n,]+/).map(t => t.trim()).filter(t => t);
+        
+        const tbody = document.getElementById('trainTableBody');
+        
+        if (trains.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Please enter at least one train number.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Fetching data for ' + trains.length + ' trains...</td></tr>';
+
+        // Fetches data for ALL trains simultaneously
+        const results = await Promise.all(trains.map(t => fetchTrainData(t)));
+        
+        tbody.innerHTML = ''; // Clear loading text
+        
+        // Populate the table with all results
+        results.forEach(data => {
+            const status = data.delay > 15 ? '<span style="color:red; font-weight:bold;">🔴 Delayed</span>' : '<span style="color:green; font-weight:bold;">🟢 On Time</span>';
+            const delayText = data.delay === 0 ? 'Right Time' : `${data.delay} mins`;
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${data.train}</strong></td>
+                    <td>${data.position}</td>
+                    <td>${delayText}</td>
+                    <td>${status}</td>
+                </tr>
+            `;
+        });
+    }
+
+    let refreshTimer;
+    function startMonitoring() {
+        updateDashboard();
+        if (refreshTimer) clearInterval(refreshTimer);
+        refreshTimer = setInterval(updateDashboard, 300000); // Auto-refreshes all trains every 5 mins
+    }
+</script>
+</body>
+</html>
