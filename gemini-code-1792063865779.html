@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Train Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
+        .controls { display: flex; gap: 15px; margin-bottom: 20px; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        input[type="text"] { flex-grow: 1; }
+        button { padding: 10px 20px; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #2c3e50; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🚂 Live Train Dashboard</h2>
+    <div class="controls">
+        <input type="text" id="trainNumbers" value="12958, 12919" placeholder="Train Numbers">
+        <input type="date" id="runDate">
+        <button onclick="startMonitoring()">Start Monitoring</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>Train No</th><th>Live Position</th><th>Delay</th><th>Status</th></tr>
+        </thead>
+        <tbody id="trainTableBody">
+            <tr><td colspan="4" style="text-align: center;">Enter train numbers and click Start Monitoring</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    document.getElementById('runDate').valueAsDate = new Date();
+    
+    async function fetchTrainData(trainNo, date) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                const delay = Math.floor(Math.random() * 30);
+                resolve({ train: trainNo, position: "Data Simulated for Demo", delay: delay });
+            }, 500);
+        });
+    }
+
+    async function updateDashboard() {
+        const trains = document.getElementById('trainNumbers').value.split(',').map(t => t.trim()).filter(t => t);
+        const tbody = document.getElementById('trainTableBody');
+        tbody.innerHTML = '<tr><td colspan="4">Fetching...</td></tr>';
+
+        const results = await Promise.all(trains.map(t => fetchTrainData(t)));
+        tbody.innerHTML = '';
+        
+        results.forEach(data => {
+            const status = data.delay > 15 ? '🔴 Delayed' : '🟢 On Time';
+            tbody.innerHTML += `<tr><td><strong>${data.train}</strong></td><td>${data.position}</td><td>${data.delay} mins</td><td>${status}</td></tr>`;
+        });
+    }
+
+    function startMonitoring() {
+        updateDashboard();
+        setInterval(updateDashboard, 300000); // 5 mins
+    }
+</script>
+</body>
+</html>
