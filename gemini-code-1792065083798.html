@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced NTES Live Dashboard</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --secondary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #334155;
+            --border: #e2e8f0;
+        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .dashboard-container { max-width: 1200px; margin: auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header h1 { margin: 0; color: var(--primary); font-size: 24px; display: flex; align-items: center; gap: 10px; }
+        
+        .control-panel { background: var(--surface); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 25px; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-weight: 600; font-size: 14px; color: var(--primary); }
+        
+        textarea, input, select { padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 15px; font-family: inherit; }
+        textarea { resize: vertical; min-height: 80px; }
+        
+        .actions { display: flex; flex-direction: column; gap: 10px; justify-content: flex-end; }
+        button { padding: 14px; background-color: var(--secondary); color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background-color: var(--primary); }
+        
+        .meta-info { display: flex; justify-content: space-between; font-size: 14px; font-weight: 500; color: #64748b; margin-bottom: 10px; padding: 0 5px; }
+        
+        .table-container { background: var(--surface); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 16px; border-bottom: 1px solid var(--border); }
+        th { background-color: var(--primary); color: white; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+        th:first-child { border-top-left-radius: 12px; }
+        th:last-child { border-top-right-radius: 12px; }
+        tr:hover { background-color: #f1f5f9; }
+        
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; display: inline-block; }
+        .badge-ontime { background-color: #dcfce7; color: var(--success); }
+        .badge-delayed { background-color: #fee2e2; color: var(--danger); }
+        
+        .countdown { font-family: monospace; font-size: 16px; background: #e2e8f0; padding: 4px 8px; border-radius: 4px; color: var(--primary); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <div class="header">
+        <h1>🚂 NTES Live Operations Dashboard</h1>
+    </div>
+
+    <div class="control-panel">
+        <div class="input-group">
+            <label>Train Roster (Paste numbers separated by commas or lines):</label>
+            <textarea id="trainNumbers" placeholder="12958, 12919, 12004...">12958, 12919, 12004, 11019</textarea>
+        </div>
+        <div class="actions">
+            <div class="input-group">
+                <label>Date of Running:</label>
+                <input type="date" id="runDate">
+            </div>
+            <button onclick="startMonitoring()">📡 Connect & Monitor</button>
+        </div>
+    </div>
+
+    <div class="meta-info">
+        <span id="lastUpdated">Last Sync: Awaiting initialization...</span>
+        <span>Next Refresh in: <span id="countdownTimer" class="countdown">--:--</span></span>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Train</th>
+                    <th>Date</th>
+                    <th>Current Station</th>
+                    <th>Live Position</th>
+                    <th>Delay</th>
+                    <th>Exp. Arrival (Dest)</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="trainTableBody">
+                <tr><td colspan="7" style="text-align: center; padding: 30px; color: #64748b;">System ready. Enter train roster and initialize monitoring.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Set default date to today
+    document.getElementById('runDate').valueAsDate = new Date();
+    
+    let refreshTimer;
+    let countdownInterval;
+    const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+    let nextRefreshTime = 0;
+
+    // Simulated API Call (Structure ready for real NTES integration)
+    async function fetchTrainData(trainNo, date) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                // Mock data generator for visualization
+                const stations = ["NDLS", "MMCT", "HWH", "MAS", "SBC", "BZA", "KGP"];
+                const station = stations[Math.floor(Math.random() * stations.length)];
+                const delayMins = Math.floor(Math.random() * 45); // 0 to 45 mins delay
+                
+                // Format expected arrival time (Mocking a time later in the day)
+                const expDate = new Date();
+                expDate.setHours(expDate.getHours() + Math.floor(Math.random() * 10) + 2);
+                const arrivalStr = expDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                resolve({ 
+                    train: trainNo,
+                    date: date,
+                    station: `${station} Station`,
+                    position: delayMins > 0 ? `Departed from ${station}` : `Arriving at ${station}`,
+                    delay: delayMins,
+                    arrival: arrivalStr
+                });
+            }, 400); 
+        });
+    }
+
+    async function updateDashboard() {
+        const rawInput = document.getElementById('trainNumbers').value;
+        const dateInput = document.getElementById('runDate').value;
+        const trains = rawInput.split(/[\n,]+/).map(t => t.trim()).filter(t => t);
+        const tbody = document.getElementById('trainTableBody');
+        
+        if (trains.length === 0) return;
+
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px;">Fetching NTES data for ${trains.length} trains...</td></tr>`;
+
+        const results = await Promise.all(trains.map(t => fetchTrainData(t, dateInput)));
+        tbody.innerHTML = ''; 
+        
+        results.forEach(data => {
+            const isDelayed = data.delay > 10;
+            const statusBadge = isDelayed 
+                ? '<span class="badge badge-delayed">Delayed</span>' 
+                : '<span class="badge badge-ontime">On Time</span>';
+            const delayText = data.delay === 0 ? 'Right Time' : `+${data.delay} mins`;
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${data.train}</strong></td>
+                    <td>${data.date}</td>
+                    <td><strong>${data.station}</strong></td>
+                    <td>${data.position}</td>
+                    <td style="color: ${isDelayed ? 'var(--danger)' : 'var(--success)'}; font-weight: bold;">${delayText}</td>
+                    <td>${data.arrival}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+        });
+
+        // Update timestamps and reset countdown
+        document.getElementById('lastUpdated').innerHTML = `Last Sync: <strong>${new Date().toLocaleTimeString()}</strong>`;
+        nextRefreshTime = Date.now() + REFRESH_INTERVAL_MS;
+        
+        if(countdownInterval) clearInterval(countdownInterval);
+        countdownInterval = setInterval(updateCountdown, 1000);
+    }
+
+    function updateCountdown() {
+        const now = Date.now();
+        const diff = nextRefreshTime - now;
+        
+        if(diff <= 0) {
+            document.getElementById('countdownTimer').innerText = "00:00";
+            return;
+        }
+
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        document.getElementById('countdownTimer').innerText = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function startMonitoring() {
+        updateDashboard();
+        if (refreshTimer) clearInterval(refreshTimer);
+        refreshTimer = setInterval(updateDashboard, REFRESH_INTERVAL_MS);
+    }
+</script>
+</body>
+</html>
